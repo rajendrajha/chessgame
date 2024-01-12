@@ -32,6 +32,9 @@ body {
     border: 10px solid #8a5a43;
 }
 
+.red{
+    background-color:red;
+}
 
 .whiteCube {
     width: 70px;
