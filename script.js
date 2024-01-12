@@ -5,9 +5,9 @@ let block = "white";
 let c = 8;
 let orgPiece;
 let turn = "white";
-let isWhiteChecked= false
-let isBlackChecked= false
-let safeMoves= []
+let isWhiteChecked = false;
+let isBlackChecked = false;
+let safeMoves = [];
 
 for (let j = 0; j < blocks ** (1 / 2); j++) {
   let row = document.createElement("div");
@@ -31,13 +31,13 @@ for (let j = 0; j < blocks ** (1 / 2); j++) {
       block = "white";
     }
 
-    if (i == 0) {
-      ele.innerText = j + 1;
-    }
-    if (j == 7) {
-      ele.innerHTML = c;
-      c--;
-    }
+    // if (i == 0) {
+    //   ele.innerText = j + 1;
+    // }
+    // if (j == 7) {
+    //   ele.innerHTML = c;
+    //   c--;
+    // }
     row.appendChild(ele);
   }
   chessContainer.appendChild(row);
@@ -682,7 +682,7 @@ function checkForAttackingPiece(pieceT) {
       piece: e.children[0],
       moves: move,
       pieceType: pieceType,
-      coords: getCoords(e.children[0], true)
+      coords: getCoords(e.children[0], true),
     });
   });
   let attackingPieces = [];
@@ -775,44 +775,151 @@ function getCubesBetween(attackerCoordinates, kingCoordinates) {
   return cubesBetween;
 }
 
-function checkForCheckMate(){
-  let oTurn = turn == "white" ? "black" : "white";
-  if (checkForChecks(oTurn)) {
-        if (checkForChecks(oTurn).status == "check") {
-          let KingMoves = getKingMoves(
-            getCoords(document.querySelector(`[piece="${turn}King"]`), true),
-            turn
-          );
-          let kingCoords= getCoords(document.querySelector(`[piece="${turn}King"]`), true)
-          let attackers= checkForAttackingPiece(oTurn)
-          if(attackers.length==1){
-            let pieceName= attackers[0].pieceName
-            let attacker_coords= attackers[0].coords
-            let attacker= attackers[0].piece
-            console.log(pieceName)
-            console.log(attacker_coords)
-            console.log(attacker);
-            console.log(getCubesBetween(attacker_coords, kingCoords))
-            if(turn=='white'){
-              isWhiteChecked= true
-              safeMoves= []
-              safeMoves.push(...getCubesBetween(attacker_coords, kingCoords))
-              safeMoves.push(attacker_coords)
-            }else if(turn=='black'){
-              safeMoves= []
-              safeMoves.push(...getCubesBetween(attacker_coords, kingCoords))
-              safeMoves.push(attacker_coords)
-              isBlackChecked= true
-            }
-          }
-          // if(KingMoves.length==0){
-          //   alert('checkmate')
-          // }
+function canBeSavedOrNot() {
+  let p = [];
+  let pieces = Array.from(cubes).forEach((e) => {
+    if (e.children[0]) {
+      if (e.children[0].getAttribute("type") == turn) {
+        p.push(e.children[0]);
+      }
+    }
+  });
+  let condition = false;
+  p.forEach((e) => {
+    let pieceN = e
+      .getAttribute("piece")
+      .slice(5, e.getAttribute("piece").length);
+    if (pieceN == "Pawn") {
+      let moves = getPawnMoves(getCoords(e, true), turn);
+      for (let i = 0; i < moves.length; i++) {
+        if (
+          safeMoves.some(
+            (safeMove) => JSON.stringify(safeMove) === JSON.stringify(moves[i])
+          )
+        ) {
+          condition = true;
+          return true;
         }
       }
+    } else if (pieceN == "Knight") {
+      let moves = getKnightMoves(getCoords(e, true), turn);
+      for (let i = 0; i < moves.length; i++) {
+        if (
+          safeMoves.some(
+            (safeMove) => JSON.stringify(safeMove) === JSON.stringify(moves[i])
+          )
+        ) {
+          condition = true;
+          return true;
+        }
+      }
+    } else if (pieceN == "Bishop") {
+      let moves = getBishopMoves(getCoords(e, true), turn);
+      for (let i = 0; i < moves.length; i++) {
+        if (
+          safeMoves.some(
+            (safeMove) => JSON.stringify(safeMove) === JSON.stringify(moves[i])
+          )
+        ) {
+          condition = true;
+          return true;
+        }
+      }
+    } else if (pieceN == "Rook") {
+      let moves = getRookMoves(getCoords(e, true), turn);
+      for (let i = 0; i < moves.length; i++) {
+        if (
+          safeMoves.some(
+            (safeMove) => JSON.stringify(safeMove) === JSON.stringify(moves[i])
+          )
+        ) {
+          condition = true;
+          return true;
+        }
+      }
+    } else if (pieceN == "Queen") {
+      let moves = getQueenMoves(getCoords(e, true), turn);
+      for (let i = 0; i < moves.length; i++) {
+        if (
+          safeMoves.some(
+            (safeMove) => JSON.stringify(safeMove) === JSON.stringify(moves[i])
+          )
+        ) {
+          condition = true;
+          return true;
+        }
+      }
+    }
+  });
+  if (!condition) {
+    return false;
+  } else {
+    return true;
+  }
 }
+
+function checkForCheckMate() {
+  let oTurn = turn == "white" ? "black" : "white";
+  if (checkForChecks(oTurn)) {
+    if (checkForChecks(oTurn).status == "check") {
+      let KingMoves = getKingMoves(
+        getCoords(document.querySelector(`[piece="${turn}King"]`), true),
+        turn
+      );
+      document.querySelector(`[piece="${turn}King"]`).parentNode.classList.add('red')
+      let kingCoords = getCoords(
+        document.querySelector(`[piece="${turn}King"]`),
+        true
+      );
+      let attackers = checkForAttackingPiece(oTurn);
+      if (attackers.length == 1) {
+        let pieceName = attackers[0].pieceName;
+        let attacker_coords = attackers[0].coords;
+        let attacker = attackers[0].piece;
+        console.log(getCubesBetween(attacker_coords, kingCoords));
+        if (turn == "white") {
+          isWhiteChecked = true;
+          safeMoves = [];
+          safeMoves.push(...getCubesBetween(attacker_coords, kingCoords));
+          safeMoves.push(attacker_coords);
+          if (!canBeSavedOrNot() && KingMoves.length == 0) {
+            alert("checkmate");
+          }
+        } else if (turn == "black") {
+          safeMoves = [];
+          safeMoves.push(...getCubesBetween(attacker_coords, kingCoords));
+          safeMoves.push(attacker_coords);
+          isBlackChecked = true;
+          if (!canBeSavedOrNot() && KingMoves.length == 0) {
+            alert("checkmate");
+          }
+        }
+      } else if (attackers.length > 1) {
+        if (KingMoves.length >= 1) {
+          return;
+        } else {
+          alert("checkmate");
+        }
+      }
+    }
+  }
+}
+
+// You can now call this function with a piece and king's coordinates to check if the piece is pinned.
+
 cubes.forEach((e) => {
   e.addEventListener("click", () => {
+    if (isBlackChecked) {
+      isBlackChecked = false;
+      cubes.forEach(e=>{
+        e.classList.remove('red')
+      })
+    } else if (isWhiteChecked) {
+      isWhiteChecked = false;
+      cubes.forEach(e=>{
+        e.classList.remove('red')
+      })
+    }
     clearAllRedHighlights();
     if (e.classList.contains("highlighted")) {
       let html = orgPiece.innerHTML;
@@ -821,14 +928,10 @@ cubes.forEach((e) => {
       requestAnimationFrame(() => {
         clearAllHighlights();
       });
-      if(isBlackChecked){
-        isBlackChecked=false
-      }else if(isWhiteChecked){
-        isWhiteChecked= false
-      }
-      turn = turn == "white" ? "black" : "white";
       
-      checkForCheckMate()
+      turn = turn == "white" ? "black" : "white";
+
+      checkForCheckMate();
       let coords = getCoords(e);
       let piece = getPieceAt(coords);
       let pieceName = piece
@@ -839,6 +942,10 @@ cubes.forEach((e) => {
           piece.src = `images/${piece
             .getAttribute("piece")
             .slice(0, 5)}_queen.png`;
+          piece.setAttribute(
+            "piece",
+            `${piece.getAttribute("type").toLowerCase()}Queen`
+          );
         }
       }
     }
@@ -847,7 +954,7 @@ cubes.forEach((e) => {
     let coordinates = getCoords(e);
     let piece = getPieceAt(coordinates);
     if (piece != null) {
-      if(!isBlackChecked){
+      if (!isBlackChecked) {
         if (turn == "black") {
           if (piece.getAttribute("piece").slice(0, 5) == "black") {
             if (
@@ -858,7 +965,7 @@ cubes.forEach((e) => {
               let p = piece
                 .getAttribute("piece")
                 .slice(5, piece.getAttribute("piece").length);
-  
+
               if (p == "Pawn") {
                 let moves = getPawnMoves(
                   coordinates,
@@ -909,15 +1016,15 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
-                console.log(moves);
+                for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
-                
+                }
               }
             }
           }
         }
-      }else{
+      } else {
         if (turn == "black") {
           if (piece.getAttribute("piece").slice(0, 5) == "black") {
             if (
@@ -928,27 +1035,37 @@ cubes.forEach((e) => {
               let p = piece
                 .getAttribute("piece")
                 .slice(5, piece.getAttribute("piece").length);
-  
-                if (p == "Pawn") {
-                  let moves = getPawnMoves(coordinates, piece.getAttribute("piece").slice(0, 5));                
-                  for (let i = 0; i < moves.length; i++) {
-                    if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
-                      highlightSquares(moves[i]);
-                      orgPiece = e;
-                      
-                    }
+
+              if (p == "Pawn") {
+                let moves = getPawnMoves(
+                  coordinates,
+                  piece.getAttribute("piece").slice(0, 5)
+                );
+                for (let i = 0; i < moves.length; i++) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
+                    highlightSquares(moves[i]);
+                    orgPiece = e;
                   }
                 }
-                 else if (p == "Knight") {
+              } else if (p == "Knight") {
                 let moves = getKnightMoves(
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "Bishop") {
@@ -957,10 +1074,14 @@ cubes.forEach((e) => {
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "Rook") {
@@ -969,10 +1090,14 @@ cubes.forEach((e) => {
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "Queen") {
@@ -981,10 +1106,14 @@ cubes.forEach((e) => {
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "King") {
@@ -992,17 +1121,16 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
-                console.log(moves);
                 for (let i = 0; i < moves.length; i++) {
-                    highlightSquares(moves[i]);
-                    orgPiece = e;
+                  highlightSquares(moves[i]);
+                  orgPiece = e;
                 }
               }
             }
           }
         }
       }
-      if(!isWhiteChecked){
+      if (!isWhiteChecked) {
         if (turn == "white") {
           if (piece.getAttribute("piece").slice(0, 5) == "white") {
             if (
@@ -1013,7 +1141,7 @@ cubes.forEach((e) => {
               let p = piece
                 .getAttribute("piece")
                 .slice(5, piece.getAttribute("piece").length);
-  
+
               if (p == "Pawn") {
                 let moves = getPawnMoves(
                   coordinates,
@@ -1072,7 +1200,7 @@ cubes.forEach((e) => {
             }
           }
         }
-      }else{
+      } else {
         if (turn == "white") {
           if (piece.getAttribute("piece").slice(0, 5) == "white") {
             if (
@@ -1083,17 +1211,21 @@ cubes.forEach((e) => {
               let p = piece
                 .getAttribute("piece")
                 .slice(5, piece.getAttribute("piece").length);
-  
+
               if (p == "Pawn") {
                 let moves = getPawnMoves(
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "Knight") {
@@ -1102,10 +1234,14 @@ cubes.forEach((e) => {
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "Bishop") {
@@ -1114,10 +1250,14 @@ cubes.forEach((e) => {
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "Rook") {
@@ -1126,10 +1266,14 @@ cubes.forEach((e) => {
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "Queen") {
@@ -1138,10 +1282,14 @@ cubes.forEach((e) => {
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
+                  if (
+                    safeMoves.some(
+                      (safeMove) =>
+                        JSON.stringify(safeMove) === JSON.stringify(moves[i])
+                    )
+                  ) {
                     highlightSquares(moves[i]);
                     orgPiece = e;
-                    
                   }
                 }
               } else if (p == "King") {
@@ -1150,11 +1298,8 @@ cubes.forEach((e) => {
                   piece.getAttribute("piece").slice(0, 5)
                 );
                 for (let i = 0; i < moves.length; i++) {
-                  if (safeMoves.some(safeMove => JSON.stringify(safeMove) === JSON.stringify(moves[i]))) {
-                    highlightSquares(moves[i]);
-                    orgPiece = e;
-                    
-                  }
+                  highlightSquares(moves[i]);
+                  orgPiece = e;
                 }
               }
             }
