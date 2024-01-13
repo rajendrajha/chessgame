@@ -8,6 +8,7 @@ let turn = "white";
 let isWhiteChecked = false;
 let isBlackChecked = false;
 let safeMoves = [];
+let audio;
 
 for (let j = 0; j < blocks ** (1 / 2); j++) {
   let row = document.createElement("div");
@@ -97,6 +98,7 @@ cubes.forEach((e) => {
       '<img src="images/black_pawn.png" piece="blackPawn" type="black" class="img" />';
   }
 });
+
 
 function getCoords(e, isImg) {
   if (!isImg) {
@@ -858,15 +860,19 @@ function canBeSavedOrNot() {
   }
 }
 
-function checkForCheckMate() {
+function checkForCheckMate(turni) {
+  let turn = turni;
   let oTurn = turn == "white" ? "black" : "white";
+
   if (checkForChecks(oTurn)) {
     if (checkForChecks(oTurn).status == "check") {
       let KingMoves = getKingMoves(
         getCoords(document.querySelector(`[piece="${turn}King"]`), true),
         turn
       );
-      document.querySelector(`[piece="${turn}King"]`).parentNode.classList.add('red')
+      document
+        .querySelector(`[piece="${turn}King"]`)
+        .parentNode.classList.add("red");
       let kingCoords = getCoords(
         document.querySelector(`[piece="${turn}King"]`),
         true
@@ -876,7 +882,6 @@ function checkForCheckMate() {
         let pieceName = attackers[0].pieceName;
         let attacker_coords = attackers[0].coords;
         let attacker = attackers[0].piece;
-        console.log(getCubesBetween(attacker_coords, kingCoords));
         if (turn == "white") {
           isWhiteChecked = true;
           safeMoves = [];
@@ -891,7 +896,15 @@ function checkForCheckMate() {
           safeMoves.push(attacker_coords);
           isBlackChecked = true;
           if (!canBeSavedOrNot() && KingMoves.length == 0) {
-            alert("checkmate");
+            setTimeout(() => {
+              let audio = new Audio("audios/checkmate.webm");
+              audio.play();
+            }, 1000);
+            setTimeout(() => {
+              alert(`${oTurn} wins the game!`);
+              window.location.reload();
+             
+            }, 2000);
           }
         }
       } else if (attackers.length > 1) {
@@ -905,33 +918,417 @@ function checkForCheckMate() {
   }
 }
 
-// You can now call this function with a piece and king's coordinates to check if the piece is pinned.
+function isPinned(piece, king) {
+  let pieceName = piece
+    .getAttribute("piece")
+    .slice(5, piece.getAttribute("piece").length);
+  let kingPiece = king;
+  let parentNode = piece.parentNode;
 
+  orgPiece = piece;
+  console.log(orgPiece);
+  console.log(kingPiece);
+  piece.parentNode.innerHTML = "";
+  checkForCheckMate(piece.getAttribute("piece").slice(0, 5));
+  if (piece.getAttribute("piece").slice(0, 5) == "black") {
+    if (!isBlackChecked) {
+      console.log("not pinned");
+      parentNode.appendChild(orgPiece);
+    } else if (isBlackChecked) {
+      console.log("pinned");
+      parentNode.appendChild(orgPiece);
+      clearAllHighlights();
+      let audio = new Audio("audios/illegal.mp3");
+      audio.play();
+      if (pieceName != "Knight") {
+        if (pieceName == "Pawn") {
+          parentNode = piece.parentNode;
+          orgPiece = piece;
+          let moves = getPawnMoves(
+            getCoords(piece, true),
+            "black",
+            false,
+            true
+          );
+          piece.parentNode.innerHTML = "";
+          let attackingPiece = checkForAttackingPiece("white");
+          let attackingCoords = attackingPiece[0].coords;
+          parentNode.appendChild(orgPiece);
+          setTimeout(() => {
+            clearAllHighlights();
+          }, 1);
+          if (
+            moves.some((subarray) =>
+              subarray.every((value, index) => value === attackingCoords[index])
+            )
+          ) {
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            setTimeout(() => {
+              highlightSquares(attackingCoords);
+            }, 2);
+            orgPiece = piece;
+          }
+        } else if (pieceName == "Bishop") {
+          parentNode = piece.parentNode;
+          orgPiece = piece;
+          let moves = getBishopMoves(
+            getCoords(piece, true),
+            "black",
+            false,
+            true
+          );
+          piece.parentNode.innerHTML = "";
+          let attackingPiece = checkForAttackingPiece("white");
+          let attackingCoords = attackingPiece[0].coords;
+          parentNode.appendChild(orgPiece);
+
+          if (
+            moves.some((subarray) =>
+              subarray.every((value, index) => value === attackingCoords[index])
+            )
+          ) {
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            setTimeout(() => {
+              let cubesBetweenBishopAndAttacker = getCubesBetween(
+                attackingCoords,
+                getCoords(piece, true)
+              );
+              for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
+                highlightSquares(cubesBetweenBishopAndAttacker[i]);
+              }
+              let cubesBetweenBishopAndKing = getCubesBetween(
+                getCoords(piece, true),
+                getCoords(king, true)
+              );
+              for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
+                highlightSquares(cubesBetweenBishopAndKing[i]);
+              }
+
+              highlightSquares([attackingCoords[0], attackingCoords[1]]);
+            }, 2);
+            orgPiece = piece;
+          }
+        } else if (pieceName == "Rook") {
+          parentNode = piece.parentNode;
+          orgPiece = piece;
+          let moves = getRookMoves(
+            getCoords(piece, true),
+            "black",
+            false,
+            true
+          );
+          piece.parentNode.innerHTML = "";
+          let attackingPiece = checkForAttackingPiece("white");
+          let attackingCoords = attackingPiece[0].coords;
+          parentNode.appendChild(orgPiece);
+
+          if (
+            moves.some((subarray) =>
+              subarray.every((value, index) => value === attackingCoords[index])
+            )
+          ) {
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            setTimeout(() => {
+              let cubesBetweenBishopAndAttacker = getCubesBetween(
+                attackingCoords,
+                getCoords(piece, true)
+              );
+              for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
+                highlightSquares(cubesBetweenBishopAndAttacker[i]);
+              }
+              let cubesBetweenBishopAndKing = getCubesBetween(
+                getCoords(piece, true),
+                getCoords(king, true)
+              );
+              for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
+                highlightSquares(cubesBetweenBishopAndKing[i]);
+              }
+
+              highlightSquares([attackingCoords[0], attackingCoords[1]]);
+            }, 2);
+            orgPiece = piece;
+          }
+        } else if (pieceName == "Queen") {
+          parentNode = piece.parentNode;
+          orgPiece = piece;
+          let moves = getQueenMoves(
+            getCoords(piece, true),
+            "black",
+            false,
+            true
+          );
+          piece.parentNode.innerHTML = "";
+          let attackingPiece = checkForAttackingPiece("white");
+          let attackingCoords = attackingPiece[0].coords;
+          parentNode.appendChild(orgPiece);
+
+          if (
+            moves.some((subarray) =>
+              subarray.every((value, index) => value === attackingCoords[index])
+            )
+          ) {
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            setTimeout(() => {
+              let cubesBetweenQueenAndAttacker = getCubesBetween(
+                attackingCoords,
+                getCoords(piece, true)
+              );
+              console.log(cubesBetweenQueenAndAttacker);
+              for (let i = 0; i < cubesBetweenQueenAndAttacker.length; i++) {
+                highlightSquares(cubesBetweenQueenAndAttacker[i]);
+              }
+              let cubesBetweenQueenAndKing = getCubesBetween(
+                getCoords(piece, true),
+                getCoords(king, true)
+              );
+              console.log(cubesBetweenQueenAndKing);
+              for (let i = 0; i < cubesBetweenQueenAndKing.length; i++) {
+                highlightSquares(cubesBetweenQueenAndKing[i]);
+              }
+
+              highlightSquares([attackingCoords[0], attackingCoords[1]]);
+            }, 2);
+            orgPiece = piece;
+          }
+        }
+      } else if (pieceName == "Knight") {
+        setTimeout(() => {
+          clearAllHighlights();
+        }, 1);
+      }
+      isBlackChecked = false;
+    }
+  } else if (piece.getAttribute("piece").slice(0, 5) == "white") {
+    if (!isWhiteChecked) {
+      console.log("not pinned");
+      parentNode.appendChild(orgPiece);
+    } else if (isWhiteChecked) {
+      console.log("pinned");
+      parentNode.appendChild(orgPiece);
+      clearAllHighlights();
+      let audio = new Audio("audios/illegal.mp3");
+      audio.play();
+      if (pieceName != "Knight") {
+        if (pieceName == "Pawn") {
+          parentNode = piece.parentNode;
+          orgPiece = piece;
+          let moves = getPawnMoves(
+            getCoords(piece, true),
+            "white",
+            false,
+            true
+          );
+          piece.parentNode.innerHTML = "";
+          let attackingPiece = checkForAttackingPiece("black");
+          let attackingCoords = attackingPiece[0].coords;
+          parentNode.appendChild(orgPiece);
+
+          if (
+            moves.some((subarray) =>
+              subarray.every((value, index) => value === attackingCoords[index])
+            )
+          ) {
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            setTimeout(() => {
+              highlightSquares([attackingCoords[0], attackingCoords[1]]);
+            }, 2);
+            orgPiece = piece;
+          }
+        } else if (pieceName == "Bishop") {
+          parentNode = piece.parentNode;
+          orgPiece = piece;
+          let moves = getBishopMoves(
+            getCoords(piece, true),
+            "white",
+            false,
+            true
+          );
+          piece.parentNode.innerHTML = "";
+          let attackingPiece = checkForAttackingPiece("black");
+          let attackingCoords = attackingPiece[0].coords;
+          parentNode.appendChild(orgPiece);
+
+          if (
+            moves.some((subarray) =>
+              subarray.every((value, index) => value === attackingCoords[index])
+            )
+          ) {
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            setTimeout(() => {
+              let cubesBetweenBishopAndAttacker = getCubesBetween(
+                attackingCoords,
+                getCoords(piece, true)
+              );
+              for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
+                highlightSquares(cubesBetweenBishopAndAttacker[i]);
+              }
+              let cubesBetweenBishopAndKing = getCubesBetween(
+                getCoords(piece, true),
+                getCoords(king, true)
+              );
+              for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
+                highlightSquares(cubesBetweenBishopAndKing[i]);
+              }
+
+              highlightSquares([attackingCoords[0], attackingCoords[1]]);
+            }, 2);
+            orgPiece = piece;
+          }
+        } else if (pieceName == "Rook") {
+          parentNode = piece.parentNode;
+          orgPiece = piece;
+          let moves = getRookMoves(
+            getCoords(piece, true),
+            "white",
+            false,
+            true
+          );
+          piece.parentNode.innerHTML = "";
+          let attackingPiece = checkForAttackingPiece("black");
+          let attackingCoords = attackingPiece[0].coords;
+          parentNode.appendChild(orgPiece);
+
+          if (
+            moves.some((subarray) =>
+              subarray.every((value, index) => value === attackingCoords[index])
+            )
+          ) {
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            setTimeout(() => {
+              let cubesBetweenBishopAndAttacker = getCubesBetween(
+                attackingCoords,
+                getCoords(piece, true)
+              );
+              for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
+                highlightSquares(cubesBetweenBishopAndAttacker[i]);
+              }
+              let cubesBetweenBishopAndKing = getCubesBetween(
+                getCoords(piece, true),
+                getCoords(king, true)
+              );
+              for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
+                highlightSquares(cubesBetweenBishopAndKing[i]);
+              }
+
+              highlightSquares([attackingCoords[0], attackingCoords[1]]);
+            }, 2);
+            orgPiece = piece;
+          }
+        } else if (pieceName == "Queen") {
+          parentNode = piece.parentNode;
+          orgPiece = piece;
+          let moves = getQueenMoves(
+            getCoords(piece, true),
+            "white",
+            false,
+            true
+          );
+          piece.parentNode.innerHTML = "";
+          let attackingPiece = checkForAttackingPiece("black");
+          let attackingCoords = attackingPiece[0].coords;
+          parentNode.appendChild(orgPiece);
+
+          if (
+            moves.some((subarray) =>
+              subarray.every((value, index) => value === attackingCoords[index])
+            )
+          ) {
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            setTimeout(() => {
+              let cubesBetweenQueenAndAttacker = getCubesBetween(
+                attackingCoords,
+                getCoords(piece, true)
+              );
+              console.log(cubesBetweenQueenAndAttacker);
+              for (let i = 0; i < cubesBetweenQueenAndAttacker.length; i++) {
+                highlightSquares(cubesBetweenQueenAndAttacker[i]);
+              }
+              let cubesBetweenQueenAndKing = getCubesBetween(
+                getCoords(piece, true),
+                getCoords(king, true)
+              );
+              console.log(cubesBetweenQueenAndKing);
+              for (let i = 0; i < cubesBetweenQueenAndKing.length; i++) {
+                highlightSquares(cubesBetweenQueenAndKing[i]);
+              }
+
+              highlightSquares([attackingCoords[0], attackingCoords[1]]);
+            }, 2);
+            orgPiece = piece;
+          }
+        }
+      } else if (pieceName == "Knight") {
+        setTimeout(() => {
+          clearAllHighlights();
+        }, 1);
+      }
+
+      isWhiteChecked = false;
+    }
+  }
+}
+
+// You can now call this function with a piece and king's coordinates to check if the piece is pinned.
 cubes.forEach((e) => {
   e.addEventListener("click", () => {
-    if (isBlackChecked) {
-      isBlackChecked = false;
-      cubes.forEach(e=>{
-        e.classList.remove('red')
-      })
-    } else if (isWhiteChecked) {
-      isWhiteChecked = false;
-      cubes.forEach(e=>{
-        e.classList.remove('red')
-      })
-    }
     clearAllRedHighlights();
     if (e.classList.contains("highlighted")) {
+      if (isBlackChecked) {
+        isBlackChecked = false;
+        cubes.forEach((e) => {
+          e.classList.remove("red");
+        });
+      } else if (isWhiteChecked) {
+        isWhiteChecked = false;
+        cubes.forEach((e) => {
+          e.classList.remove("red");
+        });
+      }
       let html = orgPiece.innerHTML;
-      e.innerHTML = html;
+      if (e.innerHTML == "") {
+        e.innerHTML = html;
+        setTimeout(() => {
+          if (!isBlackChecked && !isWhiteChecked) {
+            audio = new Audio("audios/move.mp3");
+            audio.play();
+          }
+        }, 10);
+      } else if (e.innerHTML) {
+        e.innerHTML = html;
+        setTimeout(() => {
+          if (!isBlackChecked && !isWhiteChecked) {
+            audio = new Audio("audios/capture.mp3");
+            audio.play();
+          }
+        }, 10);
+      }
       orgPiece.innerHTML = "";
       requestAnimationFrame(() => {
         clearAllHighlights();
       });
-      
-      turn = turn == "white" ? "black" : "white";
 
-      checkForCheckMate();
+      turn = turn == "white" ? "black" : "white";
+      checkForCheckMate(turn);
+      if (isBlackChecked || isWhiteChecked) {
+        audio = new Audio("audios/check.mp3");
+        audio.play();
+      }
       let coords = getCoords(e);
       let piece = getPieceAt(coords);
       let pieceName = piece
@@ -953,10 +1350,12 @@ cubes.forEach((e) => {
     orgPiece = null;
     let coordinates = getCoords(e);
     let piece = getPieceAt(coordinates);
+    let king;
     if (piece != null) {
       if (!isBlackChecked) {
         if (turn == "black") {
           if (piece.getAttribute("piece").slice(0, 5) == "black") {
+            king = document.querySelector('[piece="blackKing"]');
             if (
               piece
                 .getAttribute("piece")
@@ -971,6 +1370,7 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -980,6 +1380,7 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -989,6 +1390,7 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -998,6 +1400,7 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -1007,6 +1410,7 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -1027,6 +1431,8 @@ cubes.forEach((e) => {
       } else {
         if (turn == "black") {
           if (piece.getAttribute("piece").slice(0, 5) == "black") {
+            king = document.querySelector('[piece="blackKing"]');
+
             if (
               piece
                 .getAttribute("piece")
@@ -1041,6 +1447,7 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1057,6 +1464,7 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1073,6 +1481,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1089,6 +1499,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1105,6 +1517,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1133,6 +1547,8 @@ cubes.forEach((e) => {
       if (!isWhiteChecked) {
         if (turn == "white") {
           if (piece.getAttribute("piece").slice(0, 5) == "white") {
+            king = document.querySelector('[piece="whiteKing"]');
+
             if (
               piece
                 .getAttribute("piece")
@@ -1147,6 +1563,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -1156,6 +1574,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -1165,6 +1585,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -1174,6 +1596,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -1183,6 +1607,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   highlightSquares(moves[i]);
                   orgPiece = e;
@@ -1203,6 +1629,8 @@ cubes.forEach((e) => {
       } else {
         if (turn == "white") {
           if (piece.getAttribute("piece").slice(0, 5) == "white") {
+            king = document.querySelector('[piece="whiteKing"]');
+
             if (
               piece
                 .getAttribute("piece")
@@ -1217,6 +1645,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1233,6 +1663,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1249,6 +1681,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1265,6 +1699,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1281,6 +1717,8 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                isPinned(piece, king);
+
                 for (let i = 0; i < moves.length; i++) {
                   if (
                     safeMoves.some(
@@ -1309,3 +1747,4 @@ cubes.forEach((e) => {
     }
   });
 });
+
