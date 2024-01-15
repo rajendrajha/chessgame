@@ -9,6 +9,12 @@ let isWhiteChecked = false;
 let isBlackChecked = false;
 let safeMoves = [];
 let audio;
+let hasFirstBlackRookMoved = false;
+let hasSecondBlackRookMoved = false;
+let hasFirstWhiteRookMoved = false;
+let hasSecondWhiteRookMoved = false;
+let BlackKingMoved = false;
+let WhiteKingMoved = false;
 
 for (let j = 0; j < blocks ** (1 / 2); j++) {
   let row = document.createElement("div");
@@ -51,9 +57,12 @@ cubes.forEach((e) => {
   let y = e.getAttribute("y");
 
   if (y == 1) {
-    if (x == 1 || x == 8) {
+    if (x == 1) {
       e.innerHTML +=
-        '<img src="images/white_rook.png" piece="whiteRook" type="white" class="img" />';
+        '<img src="images/white_rook.png" piece="whiteRook" type="white" rank="second" class="img" />';
+    } else if (x == 8) {
+      e.innerHTML +=
+        '<img src="images/white_rook.png" piece="whiteRook" type="white" rank="first" class="img" />';
     } else if (x == 2 || x == 7) {
       e.innerHTML +=
         '<img src="images/white_knight.png" piece="whiteKnight" type="white" class="img" />';
@@ -75,9 +84,12 @@ cubes.forEach((e) => {
   }
 
   if (y == 8) {
-    if (x == 1 || x == 8) {
+    if (x == 1) {
       e.innerHTML +=
-        '<img src="images/black_rook.png" piece="blackRook" type="black" class="img" />';
+        '<img src="images/black_rook.png" piece="blackRook" rank="second" type="black" class="img" />';
+    } else if (x == 8) {
+      e.innerHTML +=
+        '<img src="images/black_rook.png" piece="blackRook" rank="first" type="black" class="img" />';
     } else if (x == 2 || x == 7) {
       e.innerHTML +=
         '<img src="images/black_knight.png" piece="blackKnight" type="black" class="img" />';
@@ -99,6 +111,7 @@ cubes.forEach((e) => {
   }
 });
 
+// console.log(pieces)
 
 function getCoords(e, isImg) {
   if (!isImg) {
@@ -143,10 +156,17 @@ function highlightSquares(coordinates) {
     cube[0].classList.add("highlighted");
   }
 }
+function castleHighlightSquares(coordinates) {
+  let cube = getCubeAt(coordinates);
+  if (cube[0]) {
+    cube[0].classList.add("castle");
+  }
+}
 
 function clearAllHighlights() {
   cubes.forEach((e) => {
     e.classList.remove("highlighted");
+    e.classList.remove("castle");
   });
 }
 
@@ -355,27 +375,31 @@ function getBishopMoves(
   //BishopCompleted
 }
 
-function getRookMoves(coords, pieceType, getMovesWithBug) {
+function getRookMoves(coords, pieceType, getMovesWithBug, kingKill) {
   let moves = [];
 
   for (let i = coords[0] - 1; i >= 0; i--) {
     let targetCoords = [i, coords[1]];
-    if (!processMove(moves, targetCoords, pieceType, getMovesWithBug)) break;
+    if (!processMove(moves, targetCoords, pieceType, getMovesWithBug, kingKill))
+      break;
   }
 
   for (let i = coords[0] + 1; i <= 8; i++) {
     let targetCoords = [i, coords[1]];
-    if (!processMove(moves, targetCoords, pieceType, getMovesWithBug)) break;
+    if (!processMove(moves, targetCoords, pieceType, getMovesWithBug, kingKill))
+      break;
   }
 
   for (let i = coords[1] - 1; i >= 0; i--) {
     let targetCoords = [coords[0], i];
-    if (!processMove(moves, targetCoords, pieceType, getMovesWithBug)) break;
+    if (!processMove(moves, targetCoords, pieceType, getMovesWithBug, kingKill))
+      break;
   }
 
   for (let i = coords[1] + 1; i <= 8; i++) {
     let targetCoords = [coords[0], i];
-    if (!processMove(moves, targetCoords, pieceType, getMovesWithBug)) break;
+    if (!processMove(moves, targetCoords, pieceType, getMovesWithBug, kingKill))
+      break;
   }
 
   moves = Array.from(moves).filter((val) => {
@@ -431,6 +455,64 @@ function getKingMoves(coords, pieceType, getMovesWithBug) {
     [x - 1, y],
     [x - 1, y - 1],
   ];
+  if (pieceType == "black") {
+    if (!isBlackChecked) {
+      if (!BlackKingMoved) {
+        if (!hasFirstBlackRookMoved) {
+          if (getPieceAt([6, 8]) == null && getPieceAt([7, 8]) == null) {
+            moves.push([7, 8]);
+          }
+          if (!hasSecondBlackRookMoved) {
+            if (
+              getPieceAt([4, 8]) == null &&
+              getPieceAt([3, 8]) == null &&
+              getPieceAt([2, 8]) == null
+            ) {
+              moves.push([3, 8]);
+            }
+          }
+        } else if (!hasSecondBlackRookMoved) {
+          if (
+            getPieceAt([4, 8]) == null &&
+            getPieceAt([3, 8]) == null &&
+            getPieceAt([2, 8]) == null
+          ) {
+            moves.push([3, 8]);
+          }
+        }
+      }
+    }
+  } else if (pieceType == "white") {
+    if (!isWhiteChecked) {
+      if (!WhiteKingMoved) {
+        if (!hasFirstWhiteRookMoved) {
+          if (getPieceAt([6, 1]) == null && getPieceAt([7, 1]) == null) {
+            moves.push([7, 1]);
+          }
+          if (!hasSecondWhiteRookMoved) {
+            if (
+              getPieceAt([4, 1]) == null &&
+              getPieceAt([3, 1]) == null &&
+              getPieceAt([2, 1]) == null
+            ) {
+              moves.push([3, 1]);
+            }
+          }
+        } else {
+          if (!hasSecondWhiteRookMoved) {
+            if (
+              getPieceAt([4, 1]) == null &&
+              getPieceAt([3, 1]) == null &&
+              getPieceAt([2, 1]) == null
+            ) {
+              moves.push([3, 1]);
+            }
+          }
+        }
+      }
+    }
+  }
+
   let filteredMoves = Array.from(moves).filter((val) => {
     return isMoveValid([val[0], val[1]]);
   });
@@ -483,22 +565,20 @@ function processMove(
     if (pieceAtTarget == null) {
       moves.push(targetCoords);
       return true;
-    } else {
-      if (
-        pieceAtTarget.getAttribute("piece").slice(0, 5) != pieceType &&
-        pieceAtTarget
-          .getAttribute("piece")
-          .slice(5, pieceAtTarget.getAttribute("piece").length) == "King"
-      ) {
-        moves.push(targetCoords);
-        return true;
-      } else if (pieceAtTarget.getAttribute("piece").slice(0, 5) != pieceType) {
-        moves.push(targetCoords);
-        return false;
-      } else if (pieceAtTarget.getAttribute("piece").slice(0, 5) == pieceType) {
-        moves.push(targetCoords);
-        return false;
-      }
+    } else if (
+      pieceAtTarget.getAttribute("piece").slice(0, 5) != pieceType &&
+      pieceAtTarget
+        .getAttribute("piece")
+        .slice(5, pieceAtTarget.getAttribute("piece").length) == "King"
+    ) {
+      moves.push(targetCoords);
+      return true;
+    } else if (pieceAtTarget.getAttribute("piece").slice(0, 5) != pieceType) {
+      moves.push(targetCoords);
+      return false;
+    } else if (pieceAtTarget.getAttribute("piece").slice(0, 5) == pieceType) {
+      moves.push(targetCoords);
+      return false;
     }
   } else {
     if (pieceAtTarget == null) {
@@ -718,7 +798,10 @@ function CheckKingMoves(coords, kingType) {
     if (pieceS == "Pawn") {
       moves = [...moves, ...getPawnMoves(getCoords(e), pieceType, false, true)];
     } else if (pieceS == "Rook") {
-      moves = moves.concat(getRookMoves(getCoords(e), pieceType, false, true));
+      moves = [...moves, ...getRookMoves(getCoords(e), pieceType, false, true)];
+      // console.log(e);
+      // console.log(getCoords(e));
+      console.log(getRookMoves(getCoords(e), pieceType, false, true));
     } else if (pieceS == "Knight") {
       moves = [...moves, ...getKnightMoves(getCoords(e), pieceType, true)];
     } else if (pieceS == "Bishop") {
@@ -737,7 +820,6 @@ function CheckKingMoves(coords, kingType) {
     if (moves[j][0] == coords[0]) {
       if (moves[j][1] == coords[1]) {
         isValid = false;
-        return false;
       }
     }
   }
@@ -887,14 +969,8 @@ function checkForCheckMate(turni) {
           safeMoves = [];
           safeMoves.push(...getCubesBetween(attacker_coords, kingCoords));
           safeMoves.push(attacker_coords);
-          if (!canBeSavedOrNot() && KingMoves.length == 0) {
-            alert("checkmate");
-          }
-        } else if (turn == "black") {
-          safeMoves = [];
-          safeMoves.push(...getCubesBetween(attacker_coords, kingCoords));
-          safeMoves.push(attacker_coords);
-          isBlackChecked = true;
+          console.log(canBeSavedOrNot());
+          console.log(KingMoves);
           if (!canBeSavedOrNot() && KingMoves.length == 0) {
             setTimeout(() => {
               let audio = new Audio("audios/checkmate.webm");
@@ -903,7 +979,22 @@ function checkForCheckMate(turni) {
             setTimeout(() => {
               alert(`${oTurn} wins the game!`);
               window.location.reload();
-             
+            }, 2000);
+          }
+        } else if (turn == "black") {
+          safeMoves = [];
+          safeMoves.push(...getCubesBetween(attacker_coords, kingCoords));
+          safeMoves.push(attacker_coords);
+          isBlackChecked = true;
+          console.log(KingMoves);
+          if (!canBeSavedOrNot() && KingMoves.length == 0) {
+            setTimeout(() => {
+              let audio = new Audio("audios/checkmate.webm");
+              audio.play();
+            }, 1000);
+            setTimeout(() => {
+              alert(`${oTurn} wins the game!`);
+              window.location.reload();
             }, 2000);
           }
         }
@@ -911,7 +1002,16 @@ function checkForCheckMate(turni) {
         if (KingMoves.length >= 1) {
           return;
         } else {
-          alert("checkmate");
+          if (!canBeSavedOrNot() && KingMoves.length == 0) {
+            setTimeout(() => {
+              let audio = new Audio("audios/checkmate.webm");
+              audio.play();
+            }, 1000);
+            setTimeout(() => {
+              alert(`${oTurn} wins the game!`);
+              window.location.reload();
+            }, 2000);
+          }
         }
       }
     }
@@ -919,367 +1019,385 @@ function checkForCheckMate(turni) {
 }
 
 function isPinned(piece, king) {
-  let pieceName = piece
-    .getAttribute("piece")
-    .slice(5, piece.getAttribute("piece").length);
-  let kingPiece = king;
-  let parentNode = piece.parentNode;
+  if (!isWhiteChecked && !isBlackChecked) {
+    let pieceName = piece
+      .getAttribute("piece")
+      .slice(5, piece.getAttribute("piece").length);
+    let kingPiece = king;
+    let parentNode = piece.parentNode;
 
-  orgPiece = piece;
-  console.log(orgPiece);
-  console.log(kingPiece);
-  piece.parentNode.innerHTML = "";
-  checkForCheckMate(piece.getAttribute("piece").slice(0, 5));
-  if (piece.getAttribute("piece").slice(0, 5) == "black") {
-    if (!isBlackChecked) {
-      console.log("not pinned");
-      parentNode.appendChild(orgPiece);
-    } else if (isBlackChecked) {
-      console.log("pinned");
-      parentNode.appendChild(orgPiece);
-      clearAllHighlights();
-      let audio = new Audio("audios/illegal.mp3");
-      audio.play();
-      if (pieceName != "Knight") {
-        if (pieceName == "Pawn") {
-          parentNode = piece.parentNode;
-          orgPiece = piece;
-          let moves = getPawnMoves(
-            getCoords(piece, true),
-            "black",
-            false,
-            true
-          );
-          piece.parentNode.innerHTML = "";
-          let attackingPiece = checkForAttackingPiece("white");
-          let attackingCoords = attackingPiece[0].coords;
-          parentNode.appendChild(orgPiece);
+    orgPiece = piece;
+    console.log(orgPiece);
+    console.log(kingPiece);
+    piece.parentNode.innerHTML = "";
+    checkForCheckMate(piece.getAttribute("piece").slice(0, 5));
+    if (piece.getAttribute("piece").slice(0, 5) == "black") {
+      if (!isBlackChecked) {
+        console.log("not pinned");
+        parentNode.appendChild(orgPiece);
+      } else if (isBlackChecked) {
+        console.log("pinned");
+        parentNode.appendChild(orgPiece);
+        clearAllHighlights();
+        let audio = new Audio("audios/illegal.mp3");
+        audio.play();
+        if (pieceName != "Knight") {
+          if (pieceName == "Pawn") {
+            parentNode = piece.parentNode;
+            orgPiece = piece;
+            let moves = getPawnMoves(
+              getCoords(piece, true),
+              "black",
+              false,
+              true
+            );
+            piece.parentNode.innerHTML = "";
+            let attackingPiece = checkForAttackingPiece("white");
+            let attackingCoords = attackingPiece[0].coords;
+            parentNode.appendChild(orgPiece);
+            setTimeout(() => {
+              clearAllHighlights();
+            }, 1);
+            if (
+              moves.some((subarray) =>
+                subarray.every(
+                  (value, index) => value === attackingCoords[index]
+                )
+              )
+            ) {
+              setTimeout(() => {
+                clearAllHighlights();
+              }, 1);
+              setTimeout(() => {
+                highlightSquares(attackingCoords);
+              }, 2);
+              orgPiece = piece;
+            }
+          } else if (pieceName == "Bishop") {
+            parentNode = piece.parentNode;
+            orgPiece = piece;
+            let moves = getBishopMoves(
+              getCoords(piece, true),
+              "black",
+              false,
+              true
+            );
+            piece.parentNode.innerHTML = "";
+            let attackingPiece = checkForAttackingPiece("white");
+            let attackingCoords = attackingPiece[0].coords;
+            parentNode.appendChild(orgPiece);
+
+            if (
+              moves.some((subarray) =>
+                subarray.every(
+                  (value, index) => value === attackingCoords[index]
+                )
+              )
+            ) {
+              setTimeout(() => {
+                clearAllHighlights();
+              }, 1);
+              setTimeout(() => {
+                let cubesBetweenBishopAndAttacker = getCubesBetween(
+                  attackingCoords,
+                  getCoords(piece, true)
+                );
+                for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
+                  highlightSquares(cubesBetweenBishopAndAttacker[i]);
+                }
+                let cubesBetweenBishopAndKing = getCubesBetween(
+                  getCoords(piece, true),
+                  getCoords(king, true)
+                );
+                for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
+                  highlightSquares(cubesBetweenBishopAndKing[i]);
+                }
+
+                highlightSquares([attackingCoords[0], attackingCoords[1]]);
+              }, 2);
+              orgPiece = piece;
+            }
+          } else if (pieceName == "Rook") {
+            parentNode = piece.parentNode;
+            orgPiece = piece;
+            let moves = getRookMoves(
+              getCoords(piece, true),
+              "black",
+              false,
+              true
+            );
+            piece.parentNode.innerHTML = "";
+            let attackingPiece = checkForAttackingPiece("white");
+            let attackingCoords = attackingPiece[0].coords;
+            parentNode.appendChild(orgPiece);
+
+            if (
+              moves.some((subarray) =>
+                subarray.every(
+                  (value, index) => value === attackingCoords[index]
+                )
+              )
+            ) {
+              setTimeout(() => {
+                clearAllHighlights();
+              }, 1);
+              setTimeout(() => {
+                let cubesBetweenBishopAndAttacker = getCubesBetween(
+                  attackingCoords,
+                  getCoords(piece, true)
+                );
+                for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
+                  highlightSquares(cubesBetweenBishopAndAttacker[i]);
+                }
+                let cubesBetweenBishopAndKing = getCubesBetween(
+                  getCoords(piece, true),
+                  getCoords(king, true)
+                );
+                for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
+                  highlightSquares(cubesBetweenBishopAndKing[i]);
+                }
+
+                highlightSquares([attackingCoords[0], attackingCoords[1]]);
+              }, 2);
+              orgPiece = piece;
+            }
+          } else if (pieceName == "Queen") {
+            parentNode = piece.parentNode;
+            orgPiece = piece;
+            let moves = getQueenMoves(
+              getCoords(piece, true),
+              "black",
+              false,
+              true
+            );
+            piece.parentNode.innerHTML = "";
+            let attackingPiece = checkForAttackingPiece("white");
+            let attackingCoords = attackingPiece[0].coords;
+            parentNode.appendChild(orgPiece);
+
+            if (
+              moves.some((subarray) =>
+                subarray.every(
+                  (value, index) => value === attackingCoords[index]
+                )
+              )
+            ) {
+              setTimeout(() => {
+                clearAllHighlights();
+              }, 1);
+              setTimeout(() => {
+                let cubesBetweenQueenAndAttacker = getCubesBetween(
+                  attackingCoords,
+                  getCoords(piece, true)
+                );
+                console.log(cubesBetweenQueenAndAttacker);
+                for (let i = 0; i < cubesBetweenQueenAndAttacker.length; i++) {
+                  highlightSquares(cubesBetweenQueenAndAttacker[i]);
+                }
+                let cubesBetweenQueenAndKing = getCubesBetween(
+                  getCoords(piece, true),
+                  getCoords(king, true)
+                );
+                console.log(cubesBetweenQueenAndKing);
+                for (let i = 0; i < cubesBetweenQueenAndKing.length; i++) {
+                  highlightSquares(cubesBetweenQueenAndKing[i]);
+                }
+
+                highlightSquares([attackingCoords[0], attackingCoords[1]]);
+              }, 2);
+              orgPiece = piece;
+            }
+          }
+        } else if (pieceName == "Knight") {
           setTimeout(() => {
             clearAllHighlights();
           }, 1);
-          if (
-            moves.some((subarray) =>
-              subarray.every((value, index) => value === attackingCoords[index])
-            )
-          ) {
-            setTimeout(() => {
-              clearAllHighlights();
-            }, 1);
-            setTimeout(() => {
-              highlightSquares(attackingCoords);
-            }, 2);
-            orgPiece = piece;
-          }
-        } else if (pieceName == "Bishop") {
-          parentNode = piece.parentNode;
-          orgPiece = piece;
-          let moves = getBishopMoves(
-            getCoords(piece, true),
-            "black",
-            false,
-            true
-          );
-          piece.parentNode.innerHTML = "";
-          let attackingPiece = checkForAttackingPiece("white");
-          let attackingCoords = attackingPiece[0].coords;
-          parentNode.appendChild(orgPiece);
-
-          if (
-            moves.some((subarray) =>
-              subarray.every((value, index) => value === attackingCoords[index])
-            )
-          ) {
-            setTimeout(() => {
-              clearAllHighlights();
-            }, 1);
-            setTimeout(() => {
-              let cubesBetweenBishopAndAttacker = getCubesBetween(
-                attackingCoords,
-                getCoords(piece, true)
-              );
-              for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
-                highlightSquares(cubesBetweenBishopAndAttacker[i]);
-              }
-              let cubesBetweenBishopAndKing = getCubesBetween(
-                getCoords(piece, true),
-                getCoords(king, true)
-              );
-              for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
-                highlightSquares(cubesBetweenBishopAndKing[i]);
-              }
-
-              highlightSquares([attackingCoords[0], attackingCoords[1]]);
-            }, 2);
-            orgPiece = piece;
-          }
-        } else if (pieceName == "Rook") {
-          parentNode = piece.parentNode;
-          orgPiece = piece;
-          let moves = getRookMoves(
-            getCoords(piece, true),
-            "black",
-            false,
-            true
-          );
-          piece.parentNode.innerHTML = "";
-          let attackingPiece = checkForAttackingPiece("white");
-          let attackingCoords = attackingPiece[0].coords;
-          parentNode.appendChild(orgPiece);
-
-          if (
-            moves.some((subarray) =>
-              subarray.every((value, index) => value === attackingCoords[index])
-            )
-          ) {
-            setTimeout(() => {
-              clearAllHighlights();
-            }, 1);
-            setTimeout(() => {
-              let cubesBetweenBishopAndAttacker = getCubesBetween(
-                attackingCoords,
-                getCoords(piece, true)
-              );
-              for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
-                highlightSquares(cubesBetweenBishopAndAttacker[i]);
-              }
-              let cubesBetweenBishopAndKing = getCubesBetween(
-                getCoords(piece, true),
-                getCoords(king, true)
-              );
-              for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
-                highlightSquares(cubesBetweenBishopAndKing[i]);
-              }
-
-              highlightSquares([attackingCoords[0], attackingCoords[1]]);
-            }, 2);
-            orgPiece = piece;
-          }
-        } else if (pieceName == "Queen") {
-          parentNode = piece.parentNode;
-          orgPiece = piece;
-          let moves = getQueenMoves(
-            getCoords(piece, true),
-            "black",
-            false,
-            true
-          );
-          piece.parentNode.innerHTML = "";
-          let attackingPiece = checkForAttackingPiece("white");
-          let attackingCoords = attackingPiece[0].coords;
-          parentNode.appendChild(orgPiece);
-
-          if (
-            moves.some((subarray) =>
-              subarray.every((value, index) => value === attackingCoords[index])
-            )
-          ) {
-            setTimeout(() => {
-              clearAllHighlights();
-            }, 1);
-            setTimeout(() => {
-              let cubesBetweenQueenAndAttacker = getCubesBetween(
-                attackingCoords,
-                getCoords(piece, true)
-              );
-              console.log(cubesBetweenQueenAndAttacker);
-              for (let i = 0; i < cubesBetweenQueenAndAttacker.length; i++) {
-                highlightSquares(cubesBetweenQueenAndAttacker[i]);
-              }
-              let cubesBetweenQueenAndKing = getCubesBetween(
-                getCoords(piece, true),
-                getCoords(king, true)
-              );
-              console.log(cubesBetweenQueenAndKing);
-              for (let i = 0; i < cubesBetweenQueenAndKing.length; i++) {
-                highlightSquares(cubesBetweenQueenAndKing[i]);
-              }
-
-              highlightSquares([attackingCoords[0], attackingCoords[1]]);
-            }, 2);
-            orgPiece = piece;
-          }
         }
-      } else if (pieceName == "Knight") {
-        setTimeout(() => {
-          clearAllHighlights();
-        }, 1);
+        isBlackChecked = false;
       }
-      isBlackChecked = false;
-    }
-  } else if (piece.getAttribute("piece").slice(0, 5) == "white") {
-    if (!isWhiteChecked) {
-      console.log("not pinned");
-      parentNode.appendChild(orgPiece);
-    } else if (isWhiteChecked) {
-      console.log("pinned");
-      parentNode.appendChild(orgPiece);
-      clearAllHighlights();
-      let audio = new Audio("audios/illegal.mp3");
-      audio.play();
-      if (pieceName != "Knight") {
-        if (pieceName == "Pawn") {
-          parentNode = piece.parentNode;
-          orgPiece = piece;
-          let moves = getPawnMoves(
-            getCoords(piece, true),
-            "white",
-            false,
-            true
-          );
-          piece.parentNode.innerHTML = "";
-          let attackingPiece = checkForAttackingPiece("black");
-          let attackingCoords = attackingPiece[0].coords;
-          parentNode.appendChild(orgPiece);
-
-          if (
-            moves.some((subarray) =>
-              subarray.every((value, index) => value === attackingCoords[index])
-            )
-          ) {
-            setTimeout(() => {
-              clearAllHighlights();
-            }, 1);
-            setTimeout(() => {
-              highlightSquares([attackingCoords[0], attackingCoords[1]]);
-            }, 2);
+    } else if (piece.getAttribute("piece").slice(0, 5) == "white") {
+      if (!isWhiteChecked) {
+        console.log("not pinned");
+        parentNode.appendChild(orgPiece);
+      } else if (isWhiteChecked) {
+        console.log("pinned");
+        parentNode.appendChild(orgPiece);
+        clearAllHighlights();
+        let audio = new Audio("audios/illegal.mp3");
+        audio.play();
+        if (pieceName != "Knight") {
+          if (pieceName == "Pawn") {
+            parentNode = piece.parentNode;
             orgPiece = piece;
-          }
-        } else if (pieceName == "Bishop") {
-          parentNode = piece.parentNode;
-          orgPiece = piece;
-          let moves = getBishopMoves(
-            getCoords(piece, true),
-            "white",
-            false,
-            true
-          );
-          piece.parentNode.innerHTML = "";
-          let attackingPiece = checkForAttackingPiece("black");
-          let attackingCoords = attackingPiece[0].coords;
-          parentNode.appendChild(orgPiece);
+            let moves = getPawnMoves(
+              getCoords(piece, true),
+              "white",
+              false,
+              true
+            );
+            piece.parentNode.innerHTML = "";
+            let attackingPiece = checkForAttackingPiece("black");
+            let attackingCoords = attackingPiece[0].coords;
+            parentNode.appendChild(orgPiece);
 
-          if (
-            moves.some((subarray) =>
-              subarray.every((value, index) => value === attackingCoords[index])
-            )
-          ) {
-            setTimeout(() => {
-              clearAllHighlights();
-            }, 1);
-            setTimeout(() => {
-              let cubesBetweenBishopAndAttacker = getCubesBetween(
-                attackingCoords,
-                getCoords(piece, true)
-              );
-              for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
-                highlightSquares(cubesBetweenBishopAndAttacker[i]);
-              }
-              let cubesBetweenBishopAndKing = getCubesBetween(
-                getCoords(piece, true),
-                getCoords(king, true)
-              );
-              for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
-                highlightSquares(cubesBetweenBishopAndKing[i]);
-              }
-
-              highlightSquares([attackingCoords[0], attackingCoords[1]]);
-            }, 2);
+            if (
+              moves.some((subarray) =>
+                subarray.every(
+                  (value, index) => value === attackingCoords[index]
+                )
+              )
+            ) {
+              setTimeout(() => {
+                clearAllHighlights();
+              }, 1);
+              setTimeout(() => {
+                highlightSquares([attackingCoords[0], attackingCoords[1]]);
+              }, 2);
+              orgPiece = piece;
+            }
+          } else if (pieceName == "Bishop") {
+            parentNode = piece.parentNode;
             orgPiece = piece;
-          }
-        } else if (pieceName == "Rook") {
-          parentNode = piece.parentNode;
-          orgPiece = piece;
-          let moves = getRookMoves(
-            getCoords(piece, true),
-            "white",
-            false,
-            true
-          );
-          piece.parentNode.innerHTML = "";
-          let attackingPiece = checkForAttackingPiece("black");
-          let attackingCoords = attackingPiece[0].coords;
-          parentNode.appendChild(orgPiece);
+            let moves = getBishopMoves(
+              getCoords(piece, true),
+              "white",
+              false,
+              true
+            );
+            piece.parentNode.innerHTML = "";
+            let attackingPiece = checkForAttackingPiece("black");
+            let attackingCoords = attackingPiece[0].coords;
+            parentNode.appendChild(orgPiece);
 
-          if (
-            moves.some((subarray) =>
-              subarray.every((value, index) => value === attackingCoords[index])
-            )
-          ) {
-            setTimeout(() => {
-              clearAllHighlights();
-            }, 1);
-            setTimeout(() => {
-              let cubesBetweenBishopAndAttacker = getCubesBetween(
-                attackingCoords,
-                getCoords(piece, true)
-              );
-              for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
-                highlightSquares(cubesBetweenBishopAndAttacker[i]);
-              }
-              let cubesBetweenBishopAndKing = getCubesBetween(
-                getCoords(piece, true),
-                getCoords(king, true)
-              );
-              for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
-                highlightSquares(cubesBetweenBishopAndKing[i]);
-              }
+            if (
+              moves.some((subarray) =>
+                subarray.every(
+                  (value, index) => value === attackingCoords[index]
+                )
+              )
+            ) {
+              setTimeout(() => {
+                clearAllHighlights();
+              }, 1);
+              setTimeout(() => {
+                let cubesBetweenBishopAndAttacker = getCubesBetween(
+                  attackingCoords,
+                  getCoords(piece, true)
+                );
+                for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
+                  highlightSquares(cubesBetweenBishopAndAttacker[i]);
+                }
+                let cubesBetweenBishopAndKing = getCubesBetween(
+                  getCoords(piece, true),
+                  getCoords(king, true)
+                );
+                for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
+                  highlightSquares(cubesBetweenBishopAndKing[i]);
+                }
 
-              highlightSquares([attackingCoords[0], attackingCoords[1]]);
-            }, 2);
+                highlightSquares([attackingCoords[0], attackingCoords[1]]);
+              }, 2);
+              orgPiece = piece;
+            }
+          } else if (pieceName == "Rook") {
+            parentNode = piece.parentNode;
             orgPiece = piece;
-          }
-        } else if (pieceName == "Queen") {
-          parentNode = piece.parentNode;
-          orgPiece = piece;
-          let moves = getQueenMoves(
-            getCoords(piece, true),
-            "white",
-            false,
-            true
-          );
-          piece.parentNode.innerHTML = "";
-          let attackingPiece = checkForAttackingPiece("black");
-          let attackingCoords = attackingPiece[0].coords;
-          parentNode.appendChild(orgPiece);
+            let moves = getRookMoves(
+              getCoords(piece, true),
+              "white",
+              false,
+              true
+            );
+            piece.parentNode.innerHTML = "";
+            let attackingPiece = checkForAttackingPiece("black");
+            let attackingCoords = attackingPiece[0].coords;
+            parentNode.appendChild(orgPiece);
 
-          if (
-            moves.some((subarray) =>
-              subarray.every((value, index) => value === attackingCoords[index])
-            )
-          ) {
-            setTimeout(() => {
-              clearAllHighlights();
-            }, 1);
-            setTimeout(() => {
-              let cubesBetweenQueenAndAttacker = getCubesBetween(
-                attackingCoords,
-                getCoords(piece, true)
-              );
-              console.log(cubesBetweenQueenAndAttacker);
-              for (let i = 0; i < cubesBetweenQueenAndAttacker.length; i++) {
-                highlightSquares(cubesBetweenQueenAndAttacker[i]);
-              }
-              let cubesBetweenQueenAndKing = getCubesBetween(
-                getCoords(piece, true),
-                getCoords(king, true)
-              );
-              console.log(cubesBetweenQueenAndKing);
-              for (let i = 0; i < cubesBetweenQueenAndKing.length; i++) {
-                highlightSquares(cubesBetweenQueenAndKing[i]);
-              }
+            if (
+              moves.some((subarray) =>
+                subarray.every(
+                  (value, index) => value === attackingCoords[index]
+                )
+              )
+            ) {
+              setTimeout(() => {
+                clearAllHighlights();
+              }, 1);
+              setTimeout(() => {
+                let cubesBetweenBishopAndAttacker = getCubesBetween(
+                  attackingCoords,
+                  getCoords(piece, true)
+                );
+                for (let i = 0; i < cubesBetweenBishopAndAttacker.length; i++) {
+                  highlightSquares(cubesBetweenBishopAndAttacker[i]);
+                }
+                let cubesBetweenBishopAndKing = getCubesBetween(
+                  getCoords(piece, true),
+                  getCoords(king, true)
+                );
+                for (let i = 0; i < cubesBetweenBishopAndKing.length; i++) {
+                  highlightSquares(cubesBetweenBishopAndKing[i]);
+                }
 
-              highlightSquares([attackingCoords[0], attackingCoords[1]]);
-            }, 2);
+                highlightSquares([attackingCoords[0], attackingCoords[1]]);
+              }, 2);
+              orgPiece = piece;
+            }
+          } else if (pieceName == "Queen") {
+            parentNode = piece.parentNode;
             orgPiece = piece;
+            let moves = getQueenMoves(
+              getCoords(piece, true),
+              "white",
+              false,
+              true
+            );
+            piece.parentNode.innerHTML = "";
+            let attackingPiece = checkForAttackingPiece("black");
+            let attackingCoords = attackingPiece[0].coords;
+            parentNode.appendChild(orgPiece);
+
+            if (
+              moves.some((subarray) =>
+                subarray.every(
+                  (value, index) => value === attackingCoords[index]
+                )
+              )
+            ) {
+              setTimeout(() => {
+                clearAllHighlights();
+              }, 1);
+              setTimeout(() => {
+                let cubesBetweenQueenAndAttacker = getCubesBetween(
+                  attackingCoords,
+                  getCoords(piece, true)
+                );
+                console.log(cubesBetweenQueenAndAttacker);
+                for (let i = 0; i < cubesBetweenQueenAndAttacker.length; i++) {
+                  highlightSquares(cubesBetweenQueenAndAttacker[i]);
+                }
+                let cubesBetweenQueenAndKing = getCubesBetween(
+                  getCoords(piece, true),
+                  getCoords(king, true)
+                );
+                console.log(cubesBetweenQueenAndKing);
+                for (let i = 0; i < cubesBetweenQueenAndKing.length; i++) {
+                  highlightSquares(cubesBetweenQueenAndKing[i]);
+                }
+
+                highlightSquares([attackingCoords[0], attackingCoords[1]]);
+              }, 2);
+              orgPiece = piece;
+            }
           }
+        } else if (pieceName == "Knight") {
+          setTimeout(() => {
+            clearAllHighlights();
+          }, 1);
         }
-      } else if (pieceName == "Knight") {
-        setTimeout(() => {
-          clearAllHighlights();
-        }, 1);
-      }
 
-      isWhiteChecked = false;
+        isWhiteChecked = false;
+      }
     }
   }
 }
@@ -1344,7 +1462,55 @@ cubes.forEach((e) => {
             `${piece.getAttribute("type").toLowerCase()}Queen`
           );
         }
+      } else if (pieceName == "King") {
+        if (turn == "white") {
+          BlackKingMoved = true;
+        } else if (turn == "black") {
+          WhiteKingMoved = true;
+        }
+      } else if (pieceName == "Rook") {
+        if (turn == "white") {
+          if (piece.getAttribute("rank") == "first") {
+            hasFirstBlackRookMoved = true;
+          } else if (piece.getAttribute("rank") == "second") {
+            hasSecondBlackRookMoved = true;
+          }
+        } else if (turn == "black") {
+          if (piece.getAttribute("rank") == "first") {
+            hasFirstWhiteRookMoved = true;
+          } else if (piece.getAttribute("rank") == "second") {
+            hasSecondWhiteRookMoved = true;
+          }
+        }
       }
+    } else if (e.classList.contains("castle")) {
+      let coordinates = getCoords(e);
+      let piece = getPieceAt(coordinates);
+
+      let king = document.querySelector(`[piece="${turn}King"]`);
+      e.appendChild(king);
+      if (JSON.stringify(coordinates) == JSON.stringify([7, 8])) {
+        let rook = document.querySelectorAll('[rank="first"]');
+        let cube = getCubeAt([6, 8]);
+        cube[0].appendChild(rook[1]);
+        checkForCheckMate("black");
+      } else if (JSON.stringify(coordinates) == JSON.stringify([3, 8])) {
+        let rook = document.querySelectorAll('[rank="second"]');
+        let cube = getCubeAt([4, 8]);
+        cube[0].appendChild(rook[1]);
+        checkForCheckMate("black");
+      } else if (JSON.stringify(coordinates) == JSON.stringify([7, 1])) {
+        let rook = document.querySelectorAll('[rank="first"]');
+        let cube = getCubeAt([6, 1]);
+        cube[0].appendChild(rook[0]);
+        checkForCheckMate("white");
+      } else if (JSON.stringify(coordinates) == JSON.stringify([3, 1])) {
+        let rook = document.querySelectorAll('[rank="second"]');
+        let cube = getCubeAt([4, 1]);
+        cube[0].appendChild(rook[0]);
+        checkForCheckMate("white");
+      }
+      turn = turn == "white" ? "black" : "white";
     }
     clearAllHighlights();
     orgPiece = null;
@@ -1420,9 +1586,18 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+
                 for (let i = 0; i < moves.length; i++) {
-                  highlightSquares(moves[i]);
-                  orgPiece = e;
+                  if (
+                    JSON.stringify(moves[i]) !== JSON.stringify([7, 8]) &&
+                    JSON.stringify(moves[i]) !== JSON.stringify([3, 8])
+                  ) {
+                    highlightSquares(moves[i]);
+                    orgPiece = e;
+                  } else {
+                    castleHighlightSquares(moves[i]);
+                    orgPiece = e;
+                  }
                 }
               }
             }
@@ -1618,9 +1793,18 @@ cubes.forEach((e) => {
                   coordinates,
                   piece.getAttribute("piece").slice(0, 5)
                 );
+                console.log(moves);
                 for (let i = 0; i < moves.length; i++) {
-                  highlightSquares(moves[i]);
-                  orgPiece = e;
+                  if (
+                    JSON.stringify(moves[i]) !== JSON.stringify([7, 1]) &&
+                    JSON.stringify(moves[i]) !== JSON.stringify([3, 1])
+                  ) {
+                    highlightSquares(moves[i]);
+                    orgPiece = e;
+                  } else {
+                    castleHighlightSquares(moves[i]);
+                    orgPiece = e;
+                  }
                 }
               }
             }
@@ -1747,4 +1931,4 @@ cubes.forEach((e) => {
     }
   });
 });
-
+//rook check karo aur castle pe check do
